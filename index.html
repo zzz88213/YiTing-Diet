@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教練專屬：每日飲食與熱量追蹤 (手機優化版)</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="apple-touch-icon" href="./icon.png">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; padding-bottom: 80px; line-height: 1.6; }
+        h1, h2 { color: #2c3e50; text-align: center; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .reset-btn { background-color: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .reset-btn:hover { background-color: #c0392b; }
+        
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px; }
+        input[type="number"], input[type="text"], input[type="date"], select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
+        button:hover { background-color: #219653; }
+        button.delete-btn { background-color: #e74c3c; padding: 4px 8px; margin-left: 10px; font-size: 12px; }
+        .meal-header { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        .meal-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        
+        .custom-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; padding: 10px; background: #fdf2e9; border-radius: 6px; border: 1px dashed #e67e22; align-items: center;}
+        .custom-group input { flex: 1; min-width: 60px; padding: 6px; font-size: 13px; }
+        .custom-group button { background-color: #e67e22; white-space: nowrap; }
+        .custom-group button:hover { background-color: #d35400; }
+        .custom-title { width: 100%; font-size: 12px; color: #e67e22; font-weight: bold; margin-bottom: 5px; }
+
+        .food-list { list-style-type: none; padding: 0; margin: 0 0 10px 0; }
+        .food-list li { background: #f9f9f9; padding: 8px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 14px;}
+        .macros { display: flex; flex-wrap: wrap; gap: 15px; font-size: 14px; color: #555; background: #e8f6f3; padding: 10px; border-radius: 4px; font-weight: bold; }
+        
+        /* 修改結算區塊樣式，讓它支援伸縮 */
+        .summary-box { background: #2c3e50; color: white; position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px 20px; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.3); box-sizing: border-box; transition: transform 0.3s ease-in-out; z-index: 1000; }
+        
+        /* 伸縮按鈕 */
+        .toggle-summary-btn { background: none; color: #f1c40f; width: 100%; text-align: center; border: none; padding: 5px 0 10px 0; font-size: 14px; cursor: pointer; display: block; font-weight: bold; }
+        .toggle-summary-btn:hover { background: none; color: #f39c12; }
+
+        .summary-macros { display: flex; flex-wrap: wrap; justify-content: space-around; font-size: 15px; margin-bottom: 5px; gap: 10px; font-weight: bold;}
+        
+        /* 將進階資訊包裝起來，預設隱藏 */
+        .summary-details { display: none; }
+        .summary-details.active { display: block; }
+
+        .status-msg { margin-top: 10px; padding: 10px; border-radius: 4px; font-weight: bold; text-align: center; font-size: 14px;}
+        .status-ok { background: #27ae60; color: white; }
+        .status-warn { background: #e74c3c; color: white; }
+        .status-under { background: #3498db; color: white; }
+        
+        .export-container { margin-top: 15px; margin-bottom: 10px; background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .export-text { font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #f1c40f; letter-spacing: 1px; }
+        .copy-btn { background-color: #3498db; padding: 6px 12px;}
+        .copy-btn:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>💪 每日飲食與熱量追蹤器</h1>
+        <button class="reset-btn" onclick="resetNewDay()">🔄 迎接新的一天<br><span style="font-size: 11px; font-weight: normal;">(保留目標，日期更新)</span></button>
+    </div>
+
+    <div class="card">
+        <h2>📊 今日基礎數據與目標</h2>
+        <div class="grid-3">
+            <div>
+                <label>今天日期：</label>
+                <input type="date" id="record-date" onchange="inputChanged()">
+            </div>
+            <div>
+                <label>基礎代謝 x 1.2：</label>
+                <input type="number" id="base-tdee" placeholder="例如：1800" onchange="inputChanged()">
+            </div>
+            <div>
+                <label>額外運動消耗：</label>
+                <input type="number" id="exercise-cal" placeholder="例如：300" value="0" onchange="inputChanged()">
+            </div>
+            <div>
+                <label>熱量目標 (低標)：</label>
+                <input type="number" id="target-min" placeholder="例如：2000" onchange="inputChanged()">
+            </div>
+            <div>
+                <label>熱量目標 (高標)：</label>
+                <input type="number" id="target-max" placeholder="例如：2300" onchange="inputChanged()">
+            </div>
+        </div>
+    </div>
+
+    <div id="meals-container"></div>
+
+    <div class="summary-box">
+        <button class="toggle-summary-btn" onclick="toggleSummary()" id="toggle-btn">▲ 展開詳細結算與匯出</button>
+        
+        <div class="summary-macros">
+            <span>🔥 <span id="total-cal">0</span> kcal</span>
+            <span>🥩 <span id="total-p">0</span>g</span>
+            <span>🥑 <span id="total-f">0</span>g</span>
+            <span>🍚 <span id="total-c">0</span>g</span>
+        </div>
+
+        <div class="summary-details" id="summary-details">
+            <div id="status-message" class="status-msg status-under">請輸入上方目標數據與今日飲食...</div>
+            
+            <div class="export-container">
+                <div id="export-string" class="export-text">[YYYY-MM-DD, 0, 0, 0, 0]</div>
+                <button class="copy-btn" onclick="copyToClipboard()">📋 複製</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 食物資料庫
+        const foodDatabase = {
+            "一顆蛋": { cal: 70, p: 7, f: 5, c: 1 },
+            "魚鬆6克": { cal: 28, p: 1.4, f: 1, c: 2.6 },
+            "吐司1片": { cal: 121, p: 10.5, f: 1.3, c: 22.1 },
+            "芝麻包": { cal: 219, p: 4.4, f: 7, c: 35 },
+            "叉燒包": { cal: 156, p: 6, f: 2.3, c: 28 },
+            "蛋餅皮": { cal: 123, p: 3.8, f: 3.3, c: 20.8 },
+            "超能蛋白": { cal: 192, p: 20.3, f: 1.1, c: 25 },
+            "香蕉": { cal: 90, p: 1, f: 0.2, c: 21 },
+            "華堡去醬": { cal: 470, p: 30.8, f: 17, c: 48 },
+            "鴨腿飯": { cal: 670, p: 25, f: 28, c: 80 }
+        };
+
+        const mealTypes = [
+            { id: "breakfast", name: "早餐" },
+            { id: "postworkout", name: "練後" },
+            { id: "lunch", name: "午餐" },
+            { id: "afternoon", name: "下午茶" },
+            { id: "dinner", name: "晚餐" },
+            { id: "midnight", name: "宵夜" }
+        ];
+
+        let mealData = {};
+        mealTypes.forEach(m => mealData[m.id] = []);
+
+        // --- 面板展開與收合控制 ---
+        function toggleSummary() {
+            const details = document.getElementById('summary-details');
+            const btn = document.getElementById('toggle-btn');
+            if (details.classList.contains('active')) {
+                details.classList.remove('active');
+                btn.innerText = "▲ 展開詳細結算與匯出";
+            } else {
+                details.classList.add('active');
+                btn.innerText = "▼ 收合結算面板";
+            }
+        }
+
+        function getTodayString() {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 10);
+        }
+
+        function saveData() {
+            const appData = {
+                meals: mealData,
+                targets: {
+                    date: document.getElementById('record-date').value,
+                    baseTdee: document.getElementById('base-tdee').value,
+                    exercise: document.getElementById('exercise-cal').value,
+                    min: document.getElementById('target-min').value,
+                    max: document.getElementById('target-max').value
+                }
+            };
+            localStorage.setItem('myDietTrackerData', JSON.stringify(appData));
+        }
+
+        function loadData() {
+            const savedString = localStorage.getItem('myDietTrackerData');
+            document.getElementById('record-date').value = getTodayString();
+            if (savedString) {
+                const appData = JSON.parse(savedString);
+                if (appData.meals) { mealData = appData.meals; }
+                if (appData.targets) {
+                    if(appData.targets.date) document.getElementById('record-date').value = appData.targets.date;
+                    document.getElementById('base-tdee').value = appData.targets.baseTdee || '';
+                    document.getElementById('exercise-cal').value = appData.targets.exercise || '0';
+                    document.getElementById('target-min').value = appData.targets.min || '';
+                    document.getElementById('target-max').value = appData.targets.max || '';
+                }
+            }
+        }
+
+        function resetNewDay() {
+            if(confirm("教練確認：確定要清空飲食紀錄，開啟新的一天嗎？")) {
+                mealTypes.forEach(m => mealData[m.id] = []); 
+                document.getElementById('record-date').value = getTodayString();
+                saveData(); 
+                mealTypes.forEach(m => updateMealUI(m.id)); 
+                calculateSummary(); 
+            }
+        }
+
+        function inputChanged() {
+            calculateSummary();
+            saveData();
+        }
+
+        function copyToClipboard() {
+            const copyText = document.getElementById("export-string").innerText;
+            navigator.clipboard.writeText(copyText).then(() => {
+                alert(`✅ 已複製！\n${copyText}`);
+            }).catch(err => {
+                alert("⚠️ 複製失敗，請手動複製。");
+            });
+        }
+
+        let foodOptionsHTML = Object.keys(foodDatabase).map(food => `<option value="${food}">${food}</option>`).join('');
+
+        function init() {
+            const container = document.getElementById('meals-container');
+            mealTypes.forEach(meal => {
+                const mealDiv = document.createElement('div');
+                mealDiv.className = 'card';
+                mealDiv.innerHTML = `
+                    <div class="meal-header">
+                        <h2 style="margin: 0; color: #16a085;">🍽️ ${meal.name}</h2>
+                    </div>
+                    <div class="meal-controls">
+                        <select id="select-${meal.id}">${foodOptionsHTML}</select>
+                        <input type="number" id="qty-${meal.id}" value="1" min="0.1" step="0.5" style="width: 70px;"> 份
+                        <button onclick="addFood('${meal.id}')">+ 加入</button>
+                    </div>
+                    <div class="custom-group">
+                        <div class="custom-title">✍️ 沒在選單上？手動輸入：</div>
+                        <input type="text" id="c-name-${meal.id}" placeholder="名稱(選填)">
+                        <input type="number" id="c-cal-${meal.id}" placeholder="熱量">
+                        <input type="number" id="c-p-${meal.id}" placeholder="蛋白質">
+                        <input type="number" id="c-f-${meal.id}" placeholder="脂肪">
+                        <input type="number" id="c-c-${meal.id}" placeholder="碳水">
+                        <button onclick="addCustomFood('${meal.id}')">+ 自訂加入</button>
+                    </div>
+                    <ul id="list-${meal.id}" class="food-list"></ul>
+                    <div class="macros">
+                        <span><span id="cal-${meal.id}">0</span> kcal</span> <span>蛋: <span id="p-${meal.id}">0</span></span> <span>脂: <span id="f-${meal.id}">0</span></span> <span>碳: <span id="c-${meal.id}">0</span></span>
+                    </div>
+                `;
+                container.appendChild(mealDiv);
+            });
+
+            loadData();
+            mealTypes.forEach(meal => updateMealUI(meal.id));
+            calculateSummary();
+        }
+
+        function addFood(mealId) {
+            const foodName = document.getElementById(`select-${mealId}`).value;
+            const qty = parseFloat(document.getElementById(`qty-${mealId}`).value);
+            if (qty > 0) {
+                mealData[mealId].push({ isCustom: false, name: foodName, qty: qty });
+                updateMealUI(mealId); calculateSummary(); saveData(); 
+            }
+        }
+
+        function addCustomFood(mealId) {
+            const nameInput = document.getElementById(`c-name-${mealId}`).value || "自訂外食";
+            const cal = parseFloat(document.getElementById(`c-cal-${mealId}`).value) || 0;
+            const p = parseFloat(document.getElementById(`c-p-${mealId}`).value) || 0;
+            const f = parseFloat(document.getElementById(`c-f-${mealId}`).value) || 0;
+            const c = parseFloat(document.getElementById(`c-c-${mealId}`).value) || 0;
+
+            if (cal > 0 || p > 0 || f > 0 || c > 0) {
+                mealData[mealId].push({ isCustom: true, name: nameInput, qty: 1, macros: { cal: cal, p: p, f: f, c: c } });
+                document.getElementById(`c-name-${mealId}`).value = '';
+                document.getElementById(`c-cal-${mealId}`).value = '';
+                document.getElementById(`c-p-${mealId}`).value = '';
+                document.getElementById(`c-f-${mealId}`).value = '';
+                document.getElementById(`c-c-${mealId}`).value = '';
+                updateMealUI(mealId); calculateSummary(); saveData(); 
+            } else { alert("請至少輸入熱量或一項數據喔！"); }
+        }
+
+        function removeFood(mealId, index) {
+            mealData[mealId].splice(index, 1);
+            updateMealUI(mealId); calculateSummary(); saveData(); 
+        }
+
+        function updateMealUI(mealId) {
+            const listElement = document.getElementById(`list-${mealId}`);
+            listElement.innerHTML = '';
+            let tCal = 0, tP = 0, tF = 0, tC = 0;
+
+            mealData[mealId].forEach((item, index) => {
+                let itemCal = 0, itemP = 0, itemF = 0, itemC = 0, displayName = "";
+                if (item.isCustom) {
+                    itemCal = item.macros.cal; itemP = item.macros.p; itemF = item.macros.f; itemC = item.macros.c;
+                    displayName = `${item.name} (自訂)`;
+                } else {
+                    const foodInfo = foodDatabase[item.name];
+                    itemCal = foodInfo.cal * item.qty; itemP = foodInfo.p * item.qty; itemF = foodInfo.f * item.qty; itemC = foodInfo.c * item.qty;
+                    displayName = `${item.name} (${item.qty} 份)`;
+                }
+                tCal += itemCal; tP += itemP; tF += itemF; tC += itemC;
+
+                listElement.innerHTML += `
+                    <li>
+                        <span>${displayName} - ${itemCal.toFixed(1)} kcal</span>
+                        <button class="delete-btn" onclick="removeFood('${mealId}', ${index})">刪除</button>
+                    </li>
+                `;
+            });
+
+            document.getElementById(`cal-${mealId}`).innerText = tCal.toFixed(1);
+            document.getElementById(`p-${mealId}`).innerText = tP.toFixed(1);
+            document.getElementById(`f-${mealId}`).innerText = tF.toFixed(1);
+            document.getElementById(`c-${mealId}`).innerText = tC.toFixed(1);
+        }
+
+        function calculateSummary() {
+            let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+
+            mealTypes.forEach(meal => {
+                mealData[meal.id].forEach(item => {
+                    if(item.isCustom){
+                        totalCal += item.macros.cal; totalP += item.macros.p; totalF += item.macros.f; totalC += item.macros.c;
+                    } else {
+                        totalCal += foodDatabase[item.name].cal * item.qty; totalP += foodDatabase[item.name].p * item.qty; totalF += foodDatabase[item.name].f * item.qty; totalC += foodDatabase[item.name].c * item.qty;
+                    }
+                });
+            });
+
+            const fCal = totalCal.toFixed(1); const fP = totalP.toFixed(1); const fF = totalF.toFixed(1); const fC = totalC.toFixed(1);
+
+            document.getElementById('total-cal').innerText = fCal;
+            document.getElementById('total-p').innerText = fP;
+            document.getElementById('total-f').innerText = fF;
+            document.getElementById('total-c').innerText = fC;
+
+            const recordDate = document.getElementById('record-date').value || getTodayString();
+            document.getElementById('export-string').innerText = `${recordDate}, ${fCal}, ${fP}, ${fF}, ${fC}`;
+
+            const minTarget = parseFloat(document.getElementById('target-min').value) || 0;
+            const maxTarget = parseFloat(document.getElementById('target-max').value) || 0;
+            const statusDiv = document.getElementById('status-message');
+
+            if (minTarget === 0 || maxTarget === 0) {
+                statusDiv.className = 'status-msg status-under';
+                statusDiv.innerText = `目前總攝取：${fCal} 大卡 (請設定高低標以取得進度建議)`;
+                return;
+            }
+
+            if (totalCal < minTarget) {
+                statusDiv.className = 'status-msg status-under';
+                statusDiv.innerText = `💡 還差 ${(minTarget - totalCal).toFixed(1)} 大卡才能達到低標喔！`;
+            } else if (totalCal >= minTarget && totalCal <= maxTarget) {
+                statusDiv.className = 'status-msg status-ok';
+                statusDiv.innerText = `✅ 太棒了！目前的熱量控制在完美區間內！`;
+            } else {
+                statusDiv.className = 'status-msg status-warn';
+                statusDiv.innerText = `⚠️ 逼逼！已超出高標 ${(totalCal - maxTarget).toFixed(1)} 大卡！`;
+            }
+        }
+
+        // 註冊 Service Worker (PWA 核心)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                    console.log('教練提示：PWA ServiceWorker 註冊成功！範圍: ', registration.scope);
+                })
+                .catch(err => {
+                    console.log('ServiceWorker 註冊失敗: ', err);
+                });
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
