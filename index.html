@@ -227,7 +227,7 @@
                     <div class="meal-controls">
                         <select id="select-${meal.id}">${foodOptionsHTML}</select>
                         <input type="number" id="qty-${meal.id}" value="1" min="0.1" step="0.5" style="width: 70px;"> 份
-                        <button onclick="addFood('${meal.id}')">+ 加入</button>
+                        <button onclick="addFood('${meal.id}')">+</button>
                     </div>
                     <div class="custom-group">
                         <div class="custom-title">✍️ 沒在選單上？手動輸入：</div>
@@ -236,7 +236,7 @@
                         <input type="number" id="c-p-${meal.id}" placeholder="蛋白質">
                         <input type="number" id="c-f-${meal.id}" placeholder="脂肪">
                         <input type="number" id="c-c-${meal.id}" placeholder="碳水">
-                        <button onclick="addCustomFood('${meal.id}')">+ 自訂加入</button>
+                        <button onclick="addCustomFood('${meal.id}')">+</button>
                     </div>
                     <ul id="list-${meal.id}" class="food-list"></ul>
                     <div class="macros">
