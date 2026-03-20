@@ -117,7 +117,7 @@
             </div>
             <div>
                 <label>基礎代謝 x 1.2：</label>
-                <input type="number" id="base-tdee" placeholder="例如：1800" onchange="inputChanged()">
+                <input type="number" id="base-tdee" placeholder="例如：1900" value="1900" onchange="inputChanged()">
             </div>
             <div>
                 <label>額外運動消耗：</label>
@@ -125,19 +125,19 @@
             </div>
             <div>
                 <label>熱量目標 (低標)：</label>
-                <input type="number" id="target-min" placeholder="例如：2000" onchange="inputChanged()">
+                <input type="number" id="target-min" placeholder="例如：1900" onchange="inputChanged()">
             </div>
             <div>
                 <label>熱量目標 (高標)：</label>
-                <input type="number" id="target-max" placeholder="例如：2300" onchange="inputChanged()">
+                <input type="number" id="target-max" placeholder="例如：2200" onchange="inputChanged()">
             </div>
             <div>
                 <label>蛋白質目標(g)：</label>
-                <input type="number" id="target-p" placeholder="120" onchange="inputChanged()">
+                <input type="number" id="target-p" placeholder="120" value="120" onchange="inputChanged()">
             </div>
             <div>
                 <label>脂肪上限(g)：</label>
-                <input type="number" id="target-f" placeholder="60" onchange="inputChanged()">
+                <input type="number" id="target-f" placeholder="60" value="60" onchange="inputChanged()">
             </div>
         </div>
     </div>
@@ -447,13 +447,13 @@
             document.getElementById('total-f').innerText = fF;
             document.getElementById('total-c').innerText = fC;
 
-            const recordDate = document.getElementById('record-date').value || getTodayString();
-            document.getElementById('export-string').innerText = `${recordDate}, ${fCal}, ${fP}, ${fF}, ${fC}`;
-
             const minTarget = parseFloat(document.getElementById('target-min').value) || 0;
             const maxTarget = parseFloat(document.getElementById('target-max').value) || 0;
             const statusDiv = document.getElementById('status-message');
 
+            const recordDate = document.getElementById('record-date').value || getTodayString();
+            document.getElementById('export-string').innerText = `${recordDate}, 低標=${minTarget}, 高標=${maxTarget}, ${fCal}, ${fP}, ${fF}, ${fC}`;
+            
             if (minTarget === 0 || maxTarget === 0) {
                 statusDiv.className = 'status-msg status-under';
                 statusDiv.innerText = `目前總攝取：${fCal} 大卡 (請設定高低標以取得進度建議)`;
