@@ -24,6 +24,14 @@
         .meal-header { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
         
         .meal-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        /* 儀表板 UI 樣式 */
+        .dashboard-container { background: #2c3e50; color: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .gauge-wrap { margin-bottom: 15px; }
+        .gauge-wrap:last-child { margin-bottom: 0; }
+        .gauge-header { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .gauge-bg { width: 100%; height: 18px; background: #ddd; border-radius: 9px; position: relative; overflow: visible; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); }
+        .gauge-needle { position: absolute; top: -4px; bottom: -4px; width: 6px; background: #fff; border: 2px solid #222; border-radius: 3px; z-index: 10; transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 5px rgba(0,0,0,0.5); transform: translateX(-50%);}
+        .gauge-marker { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.7); z-index: 5; }
         
         .custom-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; padding: 10px; background: #fdf2e9; border-radius: 6px; border: 1px dashed #e67e22; align-items: center;}
         .custom-group input { flex: 1; min-width: 60px; padding: 6px; font-size: 13px; }
@@ -66,6 +74,40 @@
         <button class="reset-btn" onclick="resetNewDay()">🔄 迎接新的一天<br><span style="font-size: 11px; font-weight: normal;">(保留目標，日期更新)</span></button>
     </div>
 
+    <div class="dashboard-container" id="dashboard">
+        <h2 style="color: #f1c40f; margin-bottom: 15px;">🏎️ 今日能量儀表板</h2>
+        
+        <div class="gauge-wrap">
+            <div class="gauge-header">
+                <span>🔥 熱量進度</span>
+                <span id="g-text-cal">0 / 0 kcal</span>
+            </div>
+            <div class="gauge-bg" id="g-bg-cal">
+                <div class="gauge-needle" id="g-needle-cal" style="left: 0%;"></div>
+            </div>
+        </div>
+
+        <div class="gauge-wrap">
+            <div class="gauge-header">
+                <span>🥩 蛋白質</span>
+                <span id="g-text-p">0 / 0 g</span>
+            </div>
+            <div class="gauge-bg" id="g-bg-p">
+                <div class="gauge-needle" id="g-needle-p" style="left: 0%;"></div>
+            </div>
+        </div>
+
+        <div class="gauge-wrap">
+            <div class="gauge-header">
+                <span>🥑 脂肪</span>
+                <span id="g-text-f">0 / 0 g</span>
+            </div>
+            <div class="gauge-bg" id="g-bg-f">
+                <div class="gauge-needle" id="g-needle-f" style="left: 0%;"></div>
+            </div>
+        </div>
+    </div>
+    
     <div class="card">
         <h2>📊 今日基礎數據與目標</h2>
         <div class="grid-3">
@@ -88,6 +130,14 @@
             <div>
                 <label>熱量目標 (高標)：</label>
                 <input type="number" id="target-max" placeholder="例如：2300" onchange="inputChanged()">
+            </div>
+            <div>
+                <label>蛋白質目標(g)：</label>
+                <input type="number" id="target-p" placeholder="120" onchange="inputChanged()">
+            </div>
+            <div>
+                <label>脂肪上限(g)：</label>
+                <input type="number" id="target-f" placeholder="60" onchange="inputChanged()">
             </div>
         </div>
     </div>
@@ -167,7 +217,9 @@
                     baseTdee: document.getElementById('base-tdee').value,
                     exercise: document.getElementById('exercise-cal').value,
                     min: document.getElementById('target-min').value,
-                    max: document.getElementById('target-max').value
+                    max: document.getElementById('target-max').value,
+                    p: document.getElementById('target-p').value,
+                    f: document.getElementById('target-f').value
                 }
             };
             localStorage.setItem('myDietTrackerData', JSON.stringify(appData));
@@ -185,6 +237,8 @@
                     document.getElementById('exercise-cal').value = appData.targets.exercise || '0';
                     document.getElementById('target-min').value = appData.targets.min || '';
                     document.getElementById('target-max').value = appData.targets.max || '';
+                    document.getElementById('target-p').value = appData.targets.p || '';
+                    document.getElementById('target-f').value = appData.targets.f || '';
                 }
             }
         }
@@ -319,6 +373,60 @@
             document.getElementById(`c-${mealId}`).innerText = tC.toFixed(1);
         }
 
+                // 更新儀表板 UI 的核心功能
+        function updateGauges(tCal, tP, tF) {
+            const minCal = parseFloat(document.getElementById('target-min').value) || 0;
+            const maxCal = parseFloat(document.getElementById('target-max').value) || 0;
+            const targetP = parseFloat(document.getElementById('target-p').value) || 0;
+            const targetF = parseFloat(document.getElementById('target-f').value) || 0;
+
+            // 1. 熱量儀表板 (藍 -> 綠 -> 紅)
+            const bgCal = document.getElementById('g-bg-cal');
+            const nCal = document.getElementById('g-needle-cal');
+            document.getElementById('g-text-cal').innerText = `${tCal.toFixed(0)} / ${minCal}-${maxCal} kcal`;
+            
+            if (maxCal > 0) {
+                const maxScale = maxCal * 1.25; // 讓表的最大值多25%，顯示超標空間
+                let p1 = (minCal / maxScale) * 100;
+                let p2 = (maxCal / maxScale) * 100;
+                let needlePos = (tCal / maxScale) * 100;
+                if (needlePos > 100) needlePos = 100;
+                
+                // 動態設定背景顏色區塊
+                bgCal.style.background = `linear-gradient(to right, #3498db 0%, #3498db ${p1}%, #27ae60 ${p1}%, #27ae60 ${p2}%, #e74c3c ${p2}%, #e74c3c 100%)`;
+                nCal.style.left = `${needlePos}%`;
+            }
+
+            // 2. 蛋白質儀表板 (橘 -> 綠，越高越好)
+            const bgP = document.getElementById('g-bg-p');
+            const nP = document.getElementById('g-needle-p');
+            document.getElementById('g-text-p').innerText = `${tP.toFixed(1)} / ${targetP} g`;
+            
+            if (targetP > 0) {
+                const maxScale = targetP * 1.5; // 給足超量空間
+                let targetPos = (targetP / maxScale) * 100;
+                let needlePos = (tP / maxScale) * 100;
+                if (needlePos > 100) needlePos = 100;
+
+                bgP.style.background = `linear-gradient(to right, #e67e22 0%, #e67e22 ${targetPos}%, #27ae60 ${targetPos}%, #27ae60 100%)`;
+                nP.style.left = `${needlePos}%`;
+            }
+
+            // 3. 脂肪儀表板 (黃 -> 紅，越低越好)
+            const bgF = document.getElementById('g-bg-f');
+            const nF = document.getElementById('g-needle-f');
+            document.getElementById('g-text-f').innerText = `${tF.toFixed(1)} / ${targetF} g`;
+            
+            if (targetF > 0) {
+                const maxScale = targetF * 1.5;
+                let targetPos = (targetF / maxScale) * 100;
+                let needlePos = (tF / maxScale) * 100;
+                if (needlePos > 100) needlePos = 100;
+
+                bgF.style.background = `linear-gradient(to right, #f1c40f 0%, #f1c40f ${targetPos}%, #e74c3c ${targetPos}%, #e74c3c 100%)`;
+                nF.style.left = `${needlePos}%`;
+            }
+        }
         function calculateSummary() {
             let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
 
@@ -362,6 +470,9 @@
                 statusDiv.className = 'status-msg status-warn';
                 statusDiv.innerText = `⚠️ 逼逼！已超出高標 ${(totalCal - maxTarget).toFixed(1)} 大卡！`;
             }
+
+            // 呼叫儀表板更新程式
+            updateGauges(totalCal, totalP, totalF);
         }
 
         // 註冊 Service Worker (PWA 核心)
