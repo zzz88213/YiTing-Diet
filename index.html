@@ -75,6 +75,14 @@
         .code-export-header { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px dashed #7f8c8d; padding-top: 10px;}
         .clear-btn { background-color: #7f8c8d; padding: 6px 12px; font-size: 12px;}
         .clear-btn:hover { background-color: #95a5a6;}
+
+        /* --- 新增：手風琴收合功能樣式 --- */
+        .meal-body { display: block; overflow: hidden; }
+        .meal-body.collapsed { display: none; }
+        .toggle-icon { transition: transform 0.3s; font-size: 14px; color: #7f8c8d; }
+        .toggle-icon.collapsed { transform: rotate(-90deg); }
+        .meal-header { cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+        .meal-header:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -195,7 +203,8 @@
             "超能蛋白": { cal: 192, p: 20.3, f: 1.1, c: 25 },
             "香蕉": { cal: 90, p: 1, f: 0.2, c: 21 },
             "大麥克去醬": { cal: 470, p: 26, f: 22, c: 41 },
-            "鴨腿飯": { cal: 670, p: 25, f: 28, c: 80 }
+            "義美奶茶高蛋白": { cal: 140, p: 21.1, f: 2.4, c: 8.4 },
+            "黑糖饅頭": { cal: 352, p: 8.2, f: 2.6, c: 74 }
         };
         // 暫存物件，用來存準備匯出的自訂食物
         let pendingCustomFoods = {};
@@ -309,28 +318,30 @@
                 const mealDiv = document.createElement('div');
                 mealDiv.className = 'card';
                 mealDiv.innerHTML = `
-                    <div class="meal-header">
-                        <h2 style="margin: 0; color: #16a085;">🍽️ ${meal.name}</h2>
-                    </div>
-                    <div class="meal-controls">
-                        <select id="select-${meal.id}"></select>
-                        <input type="number" id="qty-${meal.id}" value="1" min="0.1" step="0.5" style="width: 70px;"> 份
-                        <button onclick="addFood('${meal.id}')">+</button>
-                    </div>
-                    <div class="custom-group">
-                        <div class="custom-title">✍️ 手動輸入外食：</div>
-                        <div class="custom-input-row">
-                            <input type="text" id="c-name-${meal.id}" placeholder="名稱">
-                            <input type="number" id="c-cal-${meal.id}" placeholder="卡">
-                            <input type="number" id="c-p-${meal.id}" placeholder="蛋">
-                            <input type="number" id="c-f-${meal.id}" placeholder="脂">
-                            <input type="number" id="c-c-${meal.id}" placeholder="碳">
-                            <button onclick="addCustomFood('${meal.id}')">+</button>
+                    <div class="meal-header" onclick="toggleMeal('${meal.id}')">
+                        <div>
+                            <h2 style="margin: 0; color: #16a085; display: inline-block; font-size: 18px;">🍽️ ${meal.name}</h2>
+                            <span id="summary-${meal.id}" style="font-size: 13px; color: #7f8c8d; margin-left: 10px; font-weight: bold;">0.0 kcal, 蛋: 0.0  脂: 0.0  碳: 0.0</span>
                         </div>
-                    </div>
-                    <ul id="list-${meal.id}" class="food-list"></ul>
-                    <div class="macros">
-                        <span><span id="cal-${meal.id}">0</span> kcal</span> <span>蛋: <span id="p-${meal.id}">0</span></span> <span>脂: <span id="f-${meal.id}">0</span></span> <span>碳: <span id="c-${meal.id}">0</span></span>
+                        <div id="icon-${meal.id}" class="toggle-icon">▼</div>
+                     </div>
+                     <div id="body-${meal.id}" class="meal-body">
+                         <div class="meal-controls">
+                             <select id="select-${meal.id}"></select>
+                             <input type="number" id="qty-${meal.id}" value="1" min="0.1" step="0.5" style="width: 70px;"> 份
+                             <button onclick="addFood('${meal.id}')">+</button>
+                         </div>
+                         <div class="custom-group">
+                             <div class="custom-title">✍️ 手動輸入外食：</div>
+                             <div class="custom-input-row">
+                             <input type="text" id="c-name-${meal.id}" placeholder="名稱">
+                             <input type="number" id="c-cal-${meal.id}" placeholder="卡">
+                             <input type="number" id="c-p-${meal.id}" placeholder="蛋">
+                             <input type="number" id="c-f-${meal.id}" placeholder="脂">
+                             <input type="number" id="c-c-${meal.id}" placeholder="碳">
+                             <button onclick="addCustomFood('${meal.id}')">+</button>
+                         </div>
+                         <ul id="list-${meal.id}" class="food-list"></ul>
                     </div>
                 `;
                 container.appendChild(mealDiv);
@@ -412,10 +423,7 @@
                 `;
             });
 
-            document.getElementById(`cal-${mealId}`).innerText = tCal.toFixed(1);
-            document.getElementById(`p-${mealId}`).innerText = tP.toFixed(1);
-            document.getElementById(`f-${mealId}`).innerText = tF.toFixed(1);
-            document.getElementById(`c-${mealId}`).innerText = tC.toFixed(1);
+            document.getElementById(`summary-${mealId}`).innerText = `${tCal.toFixed(1)} kcal, 蛋: ${tP.toFixed(1)}  脂: ${tF.toFixed(1)}  碳: ${tC.toFixed(1)}`;
         }
 
                 // 更新儀表板 UI 的核心功能
@@ -519,7 +527,18 @@
             // 呼叫儀表板更新程式
             updateGauges(totalCal, totalP, totalF);
         }
-
+        // --- 新增：手風琴收合開關 ---
+        function toggleMeal(mealId) {
+            const body = document.getElementById(`body-${mealId}`);
+            const icon = document.getElementById(`icon-${mealId}`);
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                icon.classList.remove('collapsed');
+            } else {
+                body.classList.add('collapsed');
+                icon.classList.add('collapsed');
+            }
+        }
         // --- 全新擴充模組 ---
         // 1. 將單筆紀錄存入常用資料庫
         function saveToDatabase(mealId, index) {
