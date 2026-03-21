@@ -83,6 +83,12 @@
         .toggle-icon.collapsed { transform: rotate(-90deg); }
         .meal-header { cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
         .meal-header:hover { opacity: 0.8; }
+
+        /* --- 新增：目標設定區的緊湊排版 --- */
+        .target-list { display: flex; flex-direction: column; gap: 8px; }
+        .target-row { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #eee; }
+        .target-row label { margin: 0; font-size: 13px; color: #555; flex-shrink: 0; width: 45%; font-weight: bold; }
+        .target-row input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 14px; text-align: right; border: 1px solid #ccc; border-radius: 4px; background: #fff; }
     </style>
 </head>
 <body>
@@ -127,35 +133,46 @@
     </div>
     
     <div class="card">
-        <h2>📊 今日基礎數據與目標</h2>
-        <div class="grid-3">
+        <div class="meal-header" onclick="toggleTarget()" style="cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; border-bottom: none; padding-bottom: 0; margin-bottom: 0;">
             <div>
-                <label>今天日期：</label>
-                <input type="date" id="record-date" onchange="inputChanged()">
+                <h2 style="margin: 0; font-size: 18px; color: #2c3e50;">📊 基礎數據與目標設定</h2>
+                <div id="summary-target" style="font-size: 12px; color: #7f8c8d; margin-top: 4px; font-weight: bold; line-height: 1.4;">
+                    讀取中...
+                </div>
             </div>
-            <div>
-                <label>基礎代謝 x 1.2：</label>
-                <input type="number" id="base-tdee" placeholder="例如：1900" value="1900" onchange="inputChanged()">
-            </div>
-            <div>
-                <label>額外運動消耗：</label>
-                <input type="number" id="exercise-cal" placeholder="例如：300" value="0" onchange="inputChanged()">
-            </div>
-            <div>
-                <label>熱量目標 (低標)：</label>
-                <input type="number" id="target-min" placeholder="例如：1900" onchange="inputChanged()">
-            </div>
-            <div>
-                <label>熱量目標 (高標)：</label>
-                <input type="number" id="target-max" placeholder="例如：2200" onchange="inputChanged()">
-            </div>
-            <div>
-                <label>蛋白質目標(g)：</label>
-                <input type="number" id="target-p" placeholder="120" value="120" onchange="inputChanged()">
-            </div>
-            <div>
-                <label>脂肪上限(g)：</label>
-                <input type="number" id="target-f" placeholder="60" value="60" onchange="inputChanged()">
+            <div id="icon-target" class="toggle-icon collapsed">▼</div>
+        </div>
+
+        <div id="body-target" class="meal-body collapsed">
+            <div class="target-list" style="margin-top: 15px;">
+                <div class="target-row">
+                    <label>今天日期：</label>
+                    <input type="date" id="record-date" onchange="inputChanged()">
+                </div>
+                <div class="target-row">
+                    <label>基礎代謝 x 1.2：</label>
+                    <input type="number" id="base-tdee" placeholder="1900" value="1900" onchange="inputChanged()">
+                </div>
+                <div class="target-row">
+                    <label>額外運動消耗：</label>
+                    <input type="number" id="exercise-cal" placeholder="300" value="0" onchange="inputChanged()">
+                </div>
+                <div class="target-row">
+                    <label>熱量目標 (低標)：</label>
+                    <input type="number" id="target-min" placeholder="1900" onchange="inputChanged()">
+                </div>
+                <div class="target-row">
+                    <label>熱量目標 (高標)：</label>
+                    <input type="number" id="target-max" placeholder="2200" onchange="inputChanged()">
+                </div>
+                <div class="target-row">
+                    <label>蛋白質目標(g)：</label>
+                    <input type="number" id="target-p" placeholder="120" value="120" onchange="inputChanged()">
+                </div>
+                <div class="target-row">
+                    <label>脂肪上限(g)：</label>
+                    <input type="number" id="target-f" placeholder="60" value="60" onchange="inputChanged()">
+                </div>
             </div>
         </div>
     </div>
@@ -526,11 +543,32 @@
 
             // 呼叫儀表板更新程式
             updateGauges(totalCal, totalP, totalF);
+
+            // 即時抓取目標數字，並組合更新到剛剛的副標題裡
+            const targetP = parseFloat(document.getElementById('target-p').value) || 0;
+            const targetF = parseFloat(document.getElementById('target-f').value) || 0;
+            const exercise = parseFloat(document.getElementById('exercise-cal').value) || 0;
+            
+            document.getElementById('summary-target').innerHTML = 
+                `🔥 目標: ${minTarget} - ${maxTarget} kcal<br>🏃‍♂️ 運動: ${exercise} | 🥩 蛋: ${targetP}g | 🥑 脂: ${targetF}g`;
         }
         // --- 新增：手風琴收合開關 ---
         function toggleMeal(mealId) {
             const body = document.getElementById(`body-${mealId}`);
             const icon = document.getElementById(`icon-${mealId}`);
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                icon.classList.remove('collapsed');
+            } else {
+                body.classList.add('collapsed');
+                icon.classList.add('collapsed');
+            }
+        }
+        // 專門給「目標設定區」用的收合開關
+        function toggleTarget() {
+            const body = document.getElementById('body-target');
+            const icon = document.getElementById('icon-target');
+            
             if (body.classList.contains('collapsed')) {
                 body.classList.remove('collapsed');
                 icon.classList.remove('collapsed');
