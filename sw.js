@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diet-tracker-v3.6';
+const CACHE_NAME = 'diet-tracker-v4.0';
 const urlsToCache = [
   './index.html',
   './manifest.json',
